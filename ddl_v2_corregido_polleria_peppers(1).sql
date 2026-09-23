@@ -1,24 +1,8 @@
-/* =========================================================================
-   PROYECTO: Sistema BD - Pollería Peppers (sede Los Olivos)
-   CURSO: Base de Datos Avanzadas y Big Data - CIIN1021P
-   DDL v2 - CORREGIDO para respetar EXACTAMENTE las cardinalidades del
-   diagrama entidad-relación conceptual entregado por el equipo.
 
-   CAMBIO CLAVE respecto a la versión anterior:
-   - TURNO ahora tiene FK a EMPLEADO (ID_Empleado), porque el diagrama
-     marca la relación TENER como TURNO(M) -- EMPLEADO(1): un empleado
-     puede tener M turnos, y cada turno pertenece a un solo empleado.
-     Antes TURNO era una tabla independiente (catálogo compartido), lo
-     cual no coincidía con el diagrama.
-
-   Todas las demás cardinalidades fueron verificadas contra el diagrama
-   y se mantienen igual que en la versión anterior.
-   ========================================================================= */
-
- CREATE DATABASE PolleriaPeppers;
- GO
- USE PolleriaPeppers;
- GO
+-- CREATE DATABASE PolleriaPeppers;
+-- GO
+-- USE PolleriaPeppers;
+-- GO
 
 IF OBJECT_ID('Comprobante')       IS NOT NULL DROP TABLE Comprobante;
 IF OBJECT_ID('Pago')              IS NOT NULL DROP TABLE Pago;
@@ -42,31 +26,31 @@ GO
 
 CREATE TABLE TipoEntrega (
     ID_TipoEntrega  TINYINT      IDENTITY(1,1) PRIMARY KEY,
-    Nombre          VARCHAR(20)  NOT NULL          -- 'Local', 'Para llevar'
+    Nombre          VARCHAR(20)  NOT NULL
 );
 GO
 
 CREATE TABLE Cargo (
     ID_Cargo    TINYINT     IDENTITY(1,1) PRIMARY KEY,
-    Nombre      VARCHAR(50) NOT NULL               -- 'Cajero', 'Cocinero', 'Mozo'
+    Nombre      VARCHAR(50) NOT NULL            
 );
 GO
 
 CREATE TABLE ConceptoPago (
     ID_ConceptoPago INT         IDENTITY(1,1) PRIMARY KEY,
-    Nombre          VARCHAR(50) NOT NULL           -- 'Sueldo', 'Bono'
+    Nombre          VARCHAR(50) NOT NULL       
 );
 GO
 
 CREATE TABLE MetodoPago (
     ID_MetodoPago TINYINT      IDENTITY(1,1) PRIMARY KEY,
-    Nombre        VARCHAR(20)  NOT NULL            -- 'Efectivo', 'Tarjeta', 'Yape'
+    Nombre        VARCHAR(20)  NOT NULL           
 );
 GO
 
 CREATE TABLE TipoComprobante (
     ID_TipoComprobante INT         IDENTITY(1,1) PRIMARY KEY,
-    Nombre             VARCHAR(30) NOT NULL        -- 'Boleta', 'Factura'
+    Nombre             VARCHAR(30) NOT NULL     
 );
 GO
 
@@ -86,9 +70,7 @@ CREATE TABLE Proveedor (
 );
 GO
 
-/* ================== 2. TABLAS QUE DEPENDEN DE UNA ENTIDAD =============== */
 
--- EMPLEADO (N) --TENER-- (1) CARGO
 CREATE TABLE Empleado (
     ID_Empleado       INT          IDENTITY(1,1) PRIMARY KEY,
     NumeroDocumento   VARCHAR(20)  NOT NULL,
@@ -101,7 +83,6 @@ CREATE TABLE Empleado (
 );
 GO
 
--- PRODUCTO (N) --ABASTECER-- (1) PROVEEDOR
 CREATE TABLE Producto (
     ID_Producto   INT           IDENTITY(1,1) PRIMARY KEY,
     Nombre        VARCHAR(100)  NOT NULL,
@@ -113,11 +94,9 @@ CREATE TABLE Producto (
 );
 GO
 
--- *** CORRECCIÓN ***  TURNO (M) --TENER-- (1) EMPLEADO
--- Cada turno pertenece a UN empleado; un empleado puede tener VARIOS turnos.
 CREATE TABLE Turno (
     ID_Turno     SMALLINT     IDENTITY(1,1) PRIMARY KEY,
-    NombreTurno  VARCHAR(30)  NOT NULL,       -- ej. 'Mañana', 'Tarde', 'Noche'
+    NombreTurno  VARCHAR(30)  NOT NULL,       
     HoraInicio   TIME         NOT NULL,
     HoraFin      TIME         NOT NULL,
     ID_Empleado  INT          NOT NULL,
@@ -125,9 +104,6 @@ CREATE TABLE Turno (
 );
 GO
 
-/* ================== 3. TABLAS QUE DEPENDEN DE VARIAS ENTIDADES ========== */
-
--- PEDIDO depende de CLIENTE (1:N), EMPLEADO (1:N vía ATENDER), TIPO_ENTREGA (1:N vía TIENE)
 CREATE TABLE Pedido (
     ID_Pedido        INT          IDENTITY(1,1) PRIMARY KEY,
     Fecha            DATE         NOT NULL DEFAULT CAST(GETDATE() AS DATE),
@@ -142,9 +118,6 @@ CREATE TABLE Pedido (
 );
 GO
 
--- REGISTRO_TURNO depende de EMPLEADO (1:N vía REGISTRAR) y TURNO (1:N vía COMPROBAR,
--- cardinalidad no rotulada explícitamente en el diagrama -> se asume 1:N convencional;
--- confírmalo con la profesora o agrégalo al diagrama para evitar ambigüedad)
 CREATE TABLE RegistroTurno (
     ID_Registro   INT              IDENTITY(1,1) PRIMARY KEY,
     Estado        CHAR(1)          NOT NULL,
@@ -158,7 +131,6 @@ CREATE TABLE RegistroTurno (
 );
 GO
 
--- DETALLE_PEDIDO (N) --INCLUIR-- (1) PEDIDO   |   (N) --CORRESPONDER-- (1) PRODUCTO
 CREATE TABLE DetallePedido (
     ID_Detalle              INT           IDENTITY(1,1) PRIMARY KEY,
     Cantidad                INT           NOT NULL,
@@ -171,8 +143,6 @@ CREATE TABLE DetallePedido (
 );
 GO
 
--- PAGO (N) --GENERAR-- (1) PEDIDO  (permite pagos parciales/divididos por pedido)
--- PAGO (N) --USAR-- ... espera, METODO_PAGO(1)--USAR--(N)PAGO
 CREATE TABLE Pago (
     ID_Pago        INT           IDENTITY(1,1) PRIMARY KEY,
     Monto          DECIMAL(8,2)  NOT NULL,
@@ -184,18 +154,16 @@ CREATE TABLE Pago (
 );
 GO
 
--- COMPROBANTE (1) --EMITIR-- (1) PAGO   |   (N) --TENER-- (1) TIPO_COMPROBANTE
 CREATE TABLE Comprobante (
     ID_Comprobante     INT      IDENTITY(1,1) PRIMARY KEY,
     Fecha              DATE     NOT NULL DEFAULT CAST(GETDATE() AS DATE),
     ID_TipoComprobante INT      NOT NULL,
-    ID_Pago            INT      NOT NULL UNIQUE,   -- UNIQUE fuerza la cardinalidad 1:1 con PAGO
+    ID_Pago            INT      NOT NULL UNIQUE,   
     CONSTRAINT FK_Comprobante_Tipo FOREIGN KEY (ID_TipoComprobante) REFERENCES TipoComprobante(ID_TipoComprobante),
     CONSTRAINT FK_Comprobante_Pago FOREIGN KEY (ID_Pago)            REFERENCES Pago(ID_Pago)
 );
 GO
 
--- PAGO_EMPLEADO (N) --RECIBIR-- (1) EMPLEADO   |   (N) --CORRESPONDER-- (1) CONCEPTO_PAGO
 CREATE TABLE PagoEmpleado (
     ID_PagoEmpleado  INT           IDENTITY(1,1) PRIMARY KEY,
     Monto            DECIMAL(8,2)  NOT NULL,
